@@ -9,8 +9,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'File Tracker',
-        short_name: 'Tracker',
+        name: 'FileLogix',
+        short_name: 'FileLogix',
         theme_color: '#000000',
         icons: [
           {
