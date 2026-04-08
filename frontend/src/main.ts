@@ -12,7 +12,11 @@ import Message from 'primevue/message'
 import Button from 'primevue/button'
 import Toast from "primevue/toast";
 
-registerSW({ immediate: true })
+if (import.meta.env.PROD) {
+    registerSW({ immediate: true })
+}
+
+
 createApp(App)
     .use(router)
     .use(PrimeVue, {

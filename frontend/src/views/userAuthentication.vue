@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { zodResolver } from '@primevue/forms/resolvers/zod';
 import { useToast } from "primevue/usetoast";
 import { z } from 'zod';
+import router from "../router";
 
 const toast = useToast();
 const initialValues = ref({
@@ -28,8 +29,14 @@ const onFormSubmit = (event: { valid: boolean }) => {
 </script>
 
   <template>
-    <div class="card flex justify-center">
-      <Form v-slot="$form" :resolver="resolver" :initialValues="initialValues" @submit="onFormSubmit" class="flex flex-col gap-4 w-full sm:w-56">
+    <div class="flex items-center justify-center min-h-screen">
+      <Form
+          class="flex flex-col gap-4 w-full max-w-xs px-4 mx-auto"
+          v-slot="$form"
+          :resolver="resolver"
+          :initialValues="initialValues"
+          @submit="onFormSubmit"
+      >
         <div class="flex flex-col gap-1">
           <InputText name="username" type="text" placeholder="Username" fluid />
           <Message v-if="$form.username?.invalid" severity="error" size="small" variant="simple">{{ $form.username.error?.message }}</Message>
@@ -39,10 +46,8 @@ const onFormSubmit = (event: { valid: boolean }) => {
           <Message v-if="$form.email?.invalid" severity="error" size="small" variant="simple">{{ $form.email.error?.message }}</Message>
         </div>
         <Button type="submit" severity="secondary" label="Submit" />
+        <Button id="forward" label="Print" @click="() => router.push('/print')" />
       </Form>
-    </div>
-    <div class="bg-red-500 text-white p-4">
-      Tailwind works
     </div>
   </template>
 
