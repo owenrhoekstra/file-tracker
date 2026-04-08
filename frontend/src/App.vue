@@ -1,20 +1,21 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-import {onMounted} from "vue";
+import { useRegisterSW } from 'virtual:pwa-register/vue'
+import { RouterView } from 'vue-router'
+import Toast from 'primevue/toast'
 
-onMounted(async () => {
-  try {
-    const res = await fetch('/api/hello')
-    const data = await res.json()
-    console.log(data)
-  } catch (err) {
-    console.error(err)
+const { updateServiceWorker } = useRegisterSW({
+  onNeedRefresh() {
+    updateServiceWorker()
+  },
+  onRegisteredSW(_swUrl, r) {
+    r && setInterval(async () => {
+      await r.update()
+    }, 300000) // 5 minutes
   }
 })
-
 </script>
 
 <template>
-  <HelloWorld />
-  <p>Hello World!</p>
+  <router-view />
+  <Toast />
 </template>
