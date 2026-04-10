@@ -32,7 +32,16 @@ export async function passkeyCreate(email: string): Promise<void> {
         body: JSON.stringify({ email })
     })
 
-    if (!res || !res.ok) throw new Error('Backend not available')
+    if (!res) throw new Error('Backend not available')
+
+    if (!res.ok) {
+        const errorText = await res.text()
+        // If user already has a passkey, redirect to login
+        if (res.status === 400 && errorText.includes('already has a passkey')) {
+            throw new Error('User already has a passkey. Please use login instead.')
+        }
+        throw new Error(`Registration failed: ${errorText || res.statusText}`)
+    }
 
     const { options, sessionId }: PasskeyCreateOptions = await res.json()
 
@@ -88,7 +97,12 @@ export async function passkeyCreate(email: string): Promise<void> {
         })
     })
 
-    if (!regRes || !regRes.ok) throw new Error('Registration failed')
+    if (!regRes) throw new Error('Backend not available')
+
+    if (!regRes.ok) {
+        const errorText = await regRes.text()
+        throw new Error(`Registration verification failed: ${errorText || regRes.statusText}`)
+    }
 
     window.location.href = '/dashboard'
 }

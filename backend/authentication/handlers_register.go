@@ -27,12 +27,14 @@ func RegisterChallengeHandler(w http.ResponseWriter, r *http.Request) {
 
 	u, err := getUser(req.Email)
 	if err != nil {
+		log.Println("getUser error:", err)
 		http.Error(w, "user lookup failed", http.StatusInternalServerError)
 		return
 	}
 
 	// 🔥 CHECK: if user already has a credential, they should login instead
 	if userAlreadyHasCredential(u.ID) {
+		log.Println("User", req.Email, "already has a passkey, registration blocked")
 		http.Error(w, "user already has a passkey, use login instead", http.StatusBadRequest)
 		return
 	}

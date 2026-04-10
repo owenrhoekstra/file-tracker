@@ -1,6 +1,8 @@
 package authentication
 
 import (
+	"log"
+
 	"file-tracker-backend/database"
 
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -8,6 +10,8 @@ import (
 
 // SAVE credential after registration
 func saveCredential(userID []byte, cred *webauthn.Credential) error {
+	log.Println("Saving credential for user:", string(userID), "credential ID:", cred.ID)
+
 	_, err := database.DB.Exec(`
 		INSERT INTO credentials (
 			user_id,
@@ -17,6 +21,7 @@ func saveCredential(userID []byte, cred *webauthn.Credential) error {
 			transports,
 			sign_count
 		) VALUES ($1,$2,$3,$4,$5,$6)
+		ON CONFLICT (credential_id) DO NOTHING
 	`,
 		userID,
 		cred.ID,
@@ -26,6 +31,9 @@ func saveCredential(userID []byte, cred *webauthn.Credential) error {
 		cred.Authenticator.SignCount,
 	)
 
+	if err != nil {
+		log.Println("Error saving credential:", err)
+	}
 	return err
 }
 
@@ -37,6 +45,7 @@ func getCredentialsByUserID(userID []byte) ([]webauthn.Credential, error) {
 		WHERE user_id = $1
 	`, userID)
 	if err != nil {
+		log.Println("Error querying credentials for user:", string(userID), ":", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -54,11 +63,13 @@ func getCredentialsByUserID(userID []byte) ([]webauthn.Credential, error) {
 			&cred.Authenticator.SignCount,
 		)
 		if err != nil {
+			log.Println("Error scanning credential row:", err)
 			return nil, err
 		}
 
 		creds = append(creds, cred)
 	}
 
+	log.Println("Found", len(creds), "credential(s) for user:", string(userID))
 	return creds, nil
 }

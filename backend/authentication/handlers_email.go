@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -19,7 +20,9 @@ func CheckEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	u, err := getUser(req.Email)
 	if err != nil {
-		u = nil
+		log.Println("CheckEmailHandler: getUser error for", req.Email, ":", err)
+		http.Error(w, "user lookup failed", http.StatusInternalServerError)
+		return
 	}
 
 	hasPasskey := false
@@ -28,10 +31,14 @@ func CheckEmailHandler(w http.ResponseWriter, r *http.Request) {
 		creds, err := getCredentialsByUserID(u.ID)
 		if err == nil && len(creds) > 0 {
 			hasPasskey = true
+			log.Println("CheckEmailHandler:", req.Email, "has", len(creds), "credential(s)")
+		} else if err != nil {
+			log.Println("CheckEmailHandler: getCredentials error for user ID", string(u.ID), ":", err)
 		}
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"allowed":    true,
 		"hasPasskey": hasPasskey,
 	})

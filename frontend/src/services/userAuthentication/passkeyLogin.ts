@@ -28,7 +28,12 @@ export async function passkeyLogin(email: string): Promise<void> {
         body: JSON.stringify({ email })
     })
 
-    if (!res || !res.ok) throw new Error('Backend not available')
+    if (!res) throw new Error('Backend not available')
+
+    if (!res.ok) {
+        const errorText = await res.text()
+        throw new Error(`Login failed: ${errorText || res.statusText}`)
+    }
 
     const { options, sessionId }: PasskeyLoginOptions = await res.json()
 
@@ -84,7 +89,12 @@ export async function passkeyLogin(email: string): Promise<void> {
         })
     })
 
-    if (!authRes || !authRes.ok) throw new Error('Authentication failed')
+    if (!authRes) throw new Error('Backend not available')
+
+    if (!authRes.ok) {
+        const errorText = await authRes.text()
+        throw new Error(`Authentication verification failed: ${errorText || authRes.statusText}`)
+    }
 
     window.location.href = '/dashboard'
 }
