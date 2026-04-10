@@ -31,6 +31,12 @@ func RegisterChallengeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 🔥 CHECK: if user already has a credential, they should login instead
+	if userAlreadyHasCredential(u.ID) {
+		http.Error(w, "user already has a passkey, use login instead", http.StatusBadRequest)
+		return
+	}
+
 	options, sessionData, err := webAuthn.BeginRegistration(u)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
