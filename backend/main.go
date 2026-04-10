@@ -26,5 +26,5 @@ func main() {
 		w.Write([]byte("You are authenticated. UserID length: " + strconv.Itoa(len(userID))))
 	}))
 
-	http.ListenAndServe(":8000", nil)
+	http.ListenAndServe(":8080", nil)
 }
