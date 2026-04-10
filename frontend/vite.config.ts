@@ -36,7 +36,7 @@ export default defineConfig({
     allowedHosts: ["orh-home-server.tailac3f56.ts.net"],
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8000',
         changeOrigin: true
       }
     }

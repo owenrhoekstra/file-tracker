@@ -1,56 +1,73 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { zodResolver } from '@primevue/forms/resolvers/zod';
-import { useToast } from "primevue/usetoast";
-import { z } from 'zod';
-import router from "../router";
+import { ref, computed } from 'vue'
+import InputText from 'primevue/inputtext'
+import Button from 'primevue/button'
+import { z } from 'zod'
+import { passkeyLogin } from '../services/userAuthentication/passkeyLogin'
+import { passkeyCreate } from '../services/userAuthentication/passkeyCreate'
 
-const toast = useToast();
-const initialValues = ref({
-  username: '',
-  email: ''
-});
+const error = ref<string | null>(null)
+const email = ref('')
+const hasPasskey = ref(false)
 
-const resolver = ref(zodResolver(
-    z.object({
-      username: z.string().min(1, { message: 'Username is required.' }),
-      email: z.string()
-          .min(1, { message: 'Email is required.' })
-          .email({ message: 'Invalid email address.' })
-    })
-));
+const emailSchema = z.string().email('Invalid email format')
+const isEmailValid = computed(() => emailSchema.safeParse(email.value).success)
 
-const onFormSubmit = (event: { valid: boolean }) => {
-  const { valid } = event;
-  if (valid) {
-    toast.add({ severity: 'success', summary: 'Form is submitted.', life: 3000 });
+async function handleSubmit() {
+  error.value = null
+
+  const result = emailSchema.safeParse(email.value)
+  if (!result.success) {
+    error.value = result.error.issues[0].message
+    return
   }
-};
+
+  try {
+    const checkRes = await fetch('/api/auth/check-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.value })
+    })
+
+    if (!checkRes.ok) throw new Error('Email check failed')
+
+    const checkData = await checkRes.json()
+
+    if (!checkData.allowed) {
+      error.value = 'Email not allowed'
+      return
+    }
+
+    hasPasskey.value = checkData.hasPasskey
+
+    if (hasPasskey.value) {
+      await passkeyLogin(email.value)
+    } else {
+      await passkeyCreate(email.value)
+    }
+
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Something went wrong'
+  }
+}
 </script>
 
-  <template>
-    <div class="flex items-center justify-center min-h-screen">
-      <Form
-          class="flex flex-col gap-4 w-full max-w-xs px-4 mx-auto"
-          v-slot="$form"
-          :resolver="resolver"
-          :initialValues="initialValues"
-          @submit="onFormSubmit"
-      >
-        <div class="flex flex-col gap-1">
-          <InputText name="username" type="text" placeholder="Username" fluid />
-          <Message v-if="$form.username?.invalid" severity="error" size="small" variant="simple">{{ $form.username.error?.message }}</Message>
-        </div>
-        <div class="flex flex-col gap-1">
-          <InputText name="email" type="text" placeholder="Email" fluid />
-          <Message v-if="$form.email?.invalid" severity="error" size="small" variant="simple">{{ $form.email.error?.message }}</Message>
-        </div>
-        <Button type="submit" severity="secondary" label="Submit" />
-        <Button id="forward" label="Print" @click="() => router.push('/print')" />
-      </Form>
-    </div>
-  </template>
-
-<style scoped>
-
-</style>
+<template>
+  <div class="flex flex-col gap-4 max-w-sm justify-center items-center mx-auto">
+    <h1>FileLogix</h1>
+    <h2>Please Sign in With Your Email and Passkey</h2>
+    <InputText
+      v-model="email"
+      type="email"
+      placeholder="Email Address"
+      class="w-full"
+    />
+    <Button
+      label="Continue with Passkey"
+      @click="handleSubmit"
+      :disabled="!isEmailValid"
+      class="w-full"
+    />
+    <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
+  </div>
+</template>

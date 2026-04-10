@@ -1,26 +1,19 @@
 package main
 
 import (
-	"log"
+	"file-tracker-backend/authentication"
+	"file-tracker-backend/database"
 	"net/http"
 )
 
 func main() {
-	// basic API handler (dev + prod safe behind Tailscale/Caddy)
-	http.HandleFunc("/api/hello", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok"}`))
-	})
+	authentication.InitWebAuthn()
+	database.Init()
 
-	// fallback handler (useful for sanity checks, not serving frontend)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("backend running"))
-	})
-
-	log.Println("Server running on http://localhost:8080")
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	http.HandleFunc("/api/auth/check-email", authentication.CheckEmailHandler)
+	http.HandleFunc("/api/auth/passkey/register-challenge", authentication.RegisterChallengeHandler)
+	http.HandleFunc("/api/auth/passkey/register-verify", authentication.RegisterVerifyHandler)
+	http.HandleFunc("/api/auth/passkey/login-challenge", authentication.LoginChallengeHandler)
+	http.HandleFunc("/api/auth/passkey/login-verify", authentication.LoginVerifyHandler)
+	http.ListenAndServe(":8000", nil)
 }
