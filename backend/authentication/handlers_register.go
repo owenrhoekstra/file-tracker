@@ -68,6 +68,11 @@ func RegisterVerifyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if userAlreadyHasCredential(u.ID) {
+		http.Error(w, "already registered", http.StatusBadRequest)
+		return
+	}
+
 	credential, err := webAuthn.FinishRegistration(u, *sessionData, r)
 	if err != nil {
 		log.Println("FinishRegistration error:", err)
@@ -97,4 +102,12 @@ func RegisterVerifyHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status": "ok",
 	})
+}
+
+func userAlreadyHasCredential(userID []byte) bool {
+	creds, err := getCredentialsByUserID(userID)
+	if err != nil {
+		return false
+	}
+	return len(creds) > 0
 }

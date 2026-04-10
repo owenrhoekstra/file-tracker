@@ -19,19 +19,20 @@ func CheckEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	u, err := getUser(req.Email)
 	if err != nil {
-		http.Error(w, "user lookup failed", http.StatusInternalServerError)
-		return
+		u = nil
 	}
 
-	// check if user has credentials in DB
-	creds, err := getCredentialsByUserID(u.ID)
-	if err != nil {
-		http.Error(w, "credential lookup failed", http.StatusInternalServerError)
-		return
+	hasPasskey := false
+
+	if u != nil {
+		creds, err := getCredentialsByUserID(u.ID)
+		if err == nil && len(creds) > 0 {
+			hasPasskey = true
+		}
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"allowed":    true,
-		"hasPasskey": len(creds) > 0,
+		"hasPasskey": hasPasskey,
 	})
 }

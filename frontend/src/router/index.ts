@@ -3,18 +3,15 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 const routes: RouteRecordRaw[] = [
     {
         path: '/',
-        component: () =>
-            import('../views/userAuthentication.vue'),
+        component: () => import('../views/userAuthentication.vue')
     },
     {
         path: '/print',
-        component: () =>
-            import('../views/labelPrint.vue')
+        component: () => import('../views/labelPrint.vue')
     },
     {
         path: '/dashboard',
-        component: () =>
-            import('../views/mainDashboard.vue')
+        component: () => import('../views/mainDashboard.vue')
     }
 ]
 

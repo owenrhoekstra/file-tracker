@@ -25,7 +25,7 @@ func newSessionToken() string {
 // CREATE session
 func CreateSession(userID []byte) (string, error) {
 	token := newSessionToken()
-	expires := time.Now().Add(24 * time.Hour) // 1 day login
+	expires := time.Now().Add(5 * time.Minute) // 1 day login
 
 	_, err := database.DB.Exec(`
 		INSERT INTO sessions (token, user_id, expires_at)
@@ -73,8 +73,9 @@ func SetSessionCookie(w http.ResponseWriter, token string) {
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false, // true in prod
-		MaxAge:   86400, // 1 day
+		Secure:   true,
+		MaxAge:   0,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 

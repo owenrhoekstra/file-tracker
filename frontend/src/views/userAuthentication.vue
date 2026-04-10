@@ -5,6 +5,7 @@ import Button from 'primevue/button'
 import { z } from 'zod'
 import { passkeyLogin } from '../services/userAuthentication/passkeyLogin'
 import { passkeyCreate } from '../services/userAuthentication/passkeyCreate'
+import { apiFetch } from '../services/logout/logoutRedirect'
 
 const error = ref<string | null>(null)
 const email = ref('')
@@ -23,15 +24,23 @@ async function handleSubmit() {
   }
 
   try {
-    const checkRes = await fetch('/api/auth/check-email', {
+    const checkRes = await apiFetch('/api/auth/check-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.value })
     })
 
-    if (!checkRes.ok) throw new Error('Email check failed')
+    if (!checkRes || !checkRes.ok) {
+      error.value = 'Email check failed'
+      return
+    }
 
-    const checkData = await checkRes.json()
+    const checkData = await checkRes.json().catch(() => null)
+
+    if (!checkData) {
+      error.value = 'Server error'
+      return
+    }
 
     if (!checkData.allowed) {
       error.value = 'Email not allowed'

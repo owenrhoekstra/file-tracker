@@ -1,4 +1,5 @@
 import { base64ToUint8Array, uint8ArrayToBase64url } from './utilFunctions'
+import { apiFetch } from '../logout/logoutRedirect'
 
 type PublicKeyCredentialCreationOptionsJSON = {
     rp: PublicKeyCredentialRpEntity
@@ -25,13 +26,13 @@ type PasskeyCreateOptions = {
 }
 
 export async function passkeyCreate(email: string): Promise<void> {
-    const res = await fetch('/api/auth/passkey/register-challenge', {
+    const res = await apiFetch('/api/auth/passkey/register-challenge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
     })
 
-    if (!res.ok) throw new Error('Backend not available')
+    if (!res || !res.ok) throw new Error('Backend not available')
 
     const { options, sessionId }: PasskeyCreateOptions = await res.json()
 
@@ -69,7 +70,7 @@ export async function passkeyCreate(email: string): Promise<void> {
 
     const response = credential.response as AuthenticatorAttestationResponse
 
-    const regRes = await fetch('/api/auth/passkey/register-verify', {
+    const regRes = await apiFetch('/api/auth/passkey/register-verify', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -87,7 +88,7 @@ export async function passkeyCreate(email: string): Promise<void> {
         })
     })
 
-    if (!regRes.ok) throw new Error('Registration failed')
+    if (!regRes || !regRes.ok) throw new Error('Registration failed')
 
     window.location.href = '/dashboard'
 }

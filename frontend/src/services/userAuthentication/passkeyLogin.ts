@@ -1,4 +1,5 @@
 import { base64ToUint8Array, uint8ArrayToBase64url } from './utilFunctions'
+import { apiFetch } from '../logout/logoutRedirect'
 
 type PublicKeyCredentialRequestOptionsJSON = {
     challenge: string
@@ -21,13 +22,13 @@ type PasskeyLoginOptions = {
 }
 
 export async function passkeyLogin(email: string): Promise<void> {
-    const res = await fetch('/api/auth/passkey/login-challenge', {
+    const res = await apiFetch('/api/auth/passkey/login-challenge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
     })
 
-    if (!res.ok) throw new Error('Backend not available')
+    if (!res || !res.ok) throw new Error('Backend not available')
 
     const { options, sessionId }: PasskeyLoginOptions = await res.json()
 
@@ -61,7 +62,7 @@ export async function passkeyLogin(email: string): Promise<void> {
 
     const response = credential.response as AuthenticatorAssertionResponse
 
-    const authRes = await fetch('/api/auth/passkey/login-verify', {
+    const authRes = await apiFetch('/api/auth/passkey/login-verify', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -83,7 +84,7 @@ export async function passkeyLogin(email: string): Promise<void> {
         })
     })
 
-    if (!authRes.ok) throw new Error('Authentication failed')
+    if (!authRes || !authRes.ok) throw new Error('Authentication failed')
 
     window.location.href = '/dashboard'
 }
