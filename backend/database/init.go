@@ -29,8 +29,8 @@ func Init() {
 	}
 
 	connStr := "postgres://" + dbUser + ":" + dbPass +
-		"@" + dbHost + ":" + dbPort +
-		"/" + dbName + "?sslmode=disable"
+		"@/" + dbName +
+		"?host=/var/run/postgresql&sslmode=disable"
 
 	var err error
 	DB, err = sql.Open("postgres", connStr)

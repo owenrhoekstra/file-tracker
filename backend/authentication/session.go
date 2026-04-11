@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -11,68 +12,50 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
-type DBSessionStore struct{}
+const webAuthnSessionTTL = 3 * time.Minute
 
-func newDBSessionStore() *DBSessionStore {
-	return &DBSessionStore{}
+type RedisSessionStore struct{}
+
+func newRedisSessionStore() *RedisSessionStore {
+	return &RedisSessionStore{}
 }
 
-// generate UUID-like session ID (fast, no dependency bloat)
 func newSessionID() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }
 
-// SAVE session
-func (s *DBSessionStore) set(email string, data *webauthn.SessionData) string {
+func (s *RedisSessionStore) set(email string, data *webauthn.SessionData) string {
 	sessionID := newSessionID()
 
-	encoded, _ := json.Marshal(data)
+	payload := map[string]interface{}{
+		"email": email,
+		"data":  data,
+	}
+	encoded, _ := json.Marshal(payload)
 
-	_, _ = database.DB.Exec(`
-		INSERT INTO webauthn_sessions (id, email, challenge, data, expires_at)
-		VALUES ($1, $2, $3, $4, $5)
-	`,
-		sessionID,
-		email,
-		data.Challenge,
-		encoded,
-		time.Now().Add(3*time.Minute),
-	)
+	_ = database.RDB.Set(context.Background(), "webauthn:"+sessionID, encoded, webAuthnSessionTTL).Err()
 
 	return sessionID
 }
 
-// GET session
-func (s *DBSessionStore) get(sessionID string) (*webauthn.SessionData, bool) {
-	row := database.DB.QueryRow(`
-		SELECT data
-		FROM webauthn_sessions
-		WHERE id = $1
-		AND expires_at > NOW()
-	`, sessionID)
-
-	var raw []byte
-	if err := row.Scan(&raw); err != nil {
+func (s *RedisSessionStore) get(sessionID string) (*webauthn.SessionData, bool) {
+	raw, err := database.RDB.Get(context.Background(), "webauthn:"+sessionID).Bytes()
+	if err != nil {
 		return nil, false
 	}
 
-	var data webauthn.SessionData
-	if err := json.Unmarshal(raw, &data); err != nil {
+	var payload struct {
+		Email string               `json:"email"`
+		Data  webauthn.SessionData `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
 		return nil, false
 	}
 
-	return &data, true
+	return &payload.Data, true
 }
 
-// optional cleanup
-func cleanupExpiredSessions() {
-	_, _ = database.DB.Exec(`
-		DELETE FROM webauthn_sessions
-		WHERE expires_at < NOW()
-	`)
-}
-
-var regSessions = newDBSessionStore()
-var loginSessions = newDBSessionStore()
+var regSessions = newRedisSessionStore()
+var loginSessions = newRedisSessionStore()
