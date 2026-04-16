@@ -14,14 +14,16 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
-      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - /var/run/postgresql:/var/run/postgresql
     depends_on:
       - frontend
+      - redis
     restart: unless-stopped
+
 
   caddy:
     image: caddy:2-alpine
@@ -37,8 +39,16 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run filelogix
+    volumes:
+      - /home/owenrhoekstra/.cloudflared:/etc/cloudflared
     restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6380:6379"
 
 volumes:
   vue_dist:

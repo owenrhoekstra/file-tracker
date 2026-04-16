@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.26.1-alpine AS builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -10,5 +10,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o filelogix-backend .
 FROM alpine:3.20
 WORKDIR /app
 COPY --from=builder /app/filelogix-backend .
+COPY --from=builder /app/database/migrations ./database/migrations
 EXPOSE 8080
 CMD ["./filelogix-backend"]

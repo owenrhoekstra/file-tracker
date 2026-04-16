@@ -8,3 +8,6 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 RUN pnpm build
+
+FROM caddy:2-alpine
+COPY --from=builder /app/dist /usr/share/caddy
