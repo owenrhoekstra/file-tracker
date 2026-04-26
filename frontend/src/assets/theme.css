@@ -1,14 +1,9 @@
-html:root {
-    --p-primary-color: #3b82f6;
-    --p-primary-hover-color: #2563eb;
-    --p-primary-active-color: #1d4ed8;
+body {
+    background-color: #ffffff;
+}
 
-    --p-primary-contrast-color: #ffffff;
-
-    --p-surface-ground: #f8fafc;
-    --p-surface-card: #ffffff;
-
-    --p-text-color: #111827;
-
-    --p-border-radius: 8px;
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #0f172a;
+    }
 }

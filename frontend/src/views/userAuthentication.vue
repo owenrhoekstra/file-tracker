@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { passkeyLogin } from '../services/userAuthentication/passkeyLogin'
 import { passkeyCreate } from '../services/userAuthentication/passkeyCreate'
 import { apiFetch } from '../services/fetch/statusCodeChecks.ts'
-import mainMenuBar from '../components/mainMenuBar.vue'
 
 const error = ref<string | null>(null)
 const email = ref('')
@@ -57,7 +56,6 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <mainMenuBar />
   <div class="flex flex-col gap-4 max-w-sm justify-center items-center mx-auto">
     <h1>FileLogix</h1>
     <h2>Please Sign in With Your Email and Passkey</h2>

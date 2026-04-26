@@ -1,104 +1,128 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import DataView from 'primevue/dataview'
+import SelectButton from 'primevue/selectbutton'
 import Button from 'primevue/button'
-import { apiFetch } from '../services/fetch/statusCodeChecks.ts'
-import { requestElevation } from '../services/elevation/elevate.ts'
-import router from "../router/index.ts";
+import { ref, watch } from 'vue'
+import 'primeicons/primeicons.css'
+import mainMenuBar from '../components/mainMenuBar.vue'
 
-function test () {
-  apiFetch('/api/protected/test', {})
-}
+const filterOptions = [
+  { label: 'Added', value: 'added' },
+  { label: 'Modified', value: 'modified' },
+  { label: 'Viewed', value: 'viewed' },
+  { label: 'Deleted', value: 'deleted' },
+]
 
-async function logout() {
-  await fetch(`${import.meta.env.VITE_API_URL}/api/auth/logout`, {
-    method: 'POST',
-    credentials: 'include',
-  })
-  await router.push('/?logout=true')
-}
+const activeFilter = ref('added')
+const documents = ref([])
+const loading = ref(false)
+const LIMIT = 20
 
-async function testActionElevation() {
+async function fetchDocuments(sortBy: string) {
+  loading.value = true
   try {
-    console.log('Starting action elevation...')
-    const ok = await requestElevation('action')
-    console.log('Result:', ok)
-  } catch (e) {
-    console.error('Elevation error:', e)
+    const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/documents/recent?sortBy=${sortBy}&limit=${LIMIT}`,
+        { credentials: 'include' }
+    )
+    if (!res.ok) throw new Error('Failed to fetch')
+    documents.value = await res.json()
+  } catch (err) {
+    console.error(err)
+    documents.value = []
+  } finally {
+    loading.value = false
   }
 }
 
-async function testViewElevation() {
-  const ok = await requestElevation('view')
-  console.log(ok ? 'View elevation granted!' : 'View elevation failed')
+watch(activeFilter, (val) => fetchDocuments(val), { immediate: true })
+
+const getIcon = (type: string) => {
+  return type === 'PDF' ? 'pi pi-file-pdf' : 'pi pi-file-word'
 }
 
-const ocrResult = ref<Record<string, unknown> | null>(null)
-const ocrError = ref<string | null>(null)
-
-async function ocrCall() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  input.capture = 'environment'
-
-  input.onchange = async () => {
-    try {
-      const file = input.files?.[0]
-      if (!file) return
-
-      ocrResult.value = null
-      ocrError.value = null
-
-      const bitmap = await createImageBitmap(file)
-      const canvas = document.createElement('canvas')
-      canvas.width = bitmap.width
-      canvas.height = bitmap.height
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(bitmap, 0, 0)
-
-      const blob = await new Promise<Blob>((resolve, reject) =>
-          canvas.toBlob(
-              b => b ? resolve(b) : reject(new Error('toBlob failed')),
-              'image/webp',
-              0.92
-          )
-      )
-
-      const form = new FormData()
-      form.append('image', blob, 'capture.webp')
-
-      const resp = await apiFetch('/api/protected/ocr', {
-        method: 'POST',
-        body: form,
-      })
-
-      if (!resp) return
-
-      if (!resp.ok) {
-        ocrError.value = `Error ${resp.status}: ${await resp.text()}`
-        return
-      }
-
-      ocrResult.value = await resp.json()
-    } catch (e) {
-      console.error('ocrCall error:', e)
-      ocrError.value = `Unexpected error: ${e}`
-    }
+const getDate = (doc: any) => {
+  switch (activeFilter.value) {
+    case 'added': return doc.added
+    case 'modified': return doc.modified
+    case 'viewed': return doc.viewed
+    case 'deleted': return doc.deleted
   }
-  input.click()
+}
+
+const getDateLabel = () => {
+  switch (activeFilter.value) {
+    case 'added': return 'Added'
+    case 'modified': return 'Modified'
+    case 'viewed': return 'Viewed'
+    case 'deleted': return 'Deleted'
+  }
 }
 </script>
 
 <template>
-  <p>Auth complete, dashboard loaded</p>
-  <div class="grid grid-cols-1 gap-4 max-w-sm w-full mx-auto px-4 py-3">
-    <Button label="Expired Test" @click="test()" />
-    <Button label="Logout" @click="logout()" />
-    <Button label="Test Action Elevation" @click="testActionElevation()" />
-    <Button label="Test View Elevation" @click="testViewElevation()" />
-    <Button label="OCR Call" @click="ocrCall" />
+  <mainMenuBar />
+  <div class="flex flex-col gap-4 p-4">
 
-    <pre v-if="ocrError" style="color: red; white-space: pre-wrap;">{{ ocrError }}</pre>
-    <pre v-if="ocrResult" style="white-space: pre-wrap;">{{ JSON.stringify(ocrResult, null, 2) }}</pre>
+    <!-- Sort By -->
+    <div class="flex flex-col sm:flex-row justify-center items-center gap-2">
+      <span class="text-lg font-semibold">Sort By:</span>
+      <SelectButton
+          v-model="activeFilter"
+          :options="filterOptions"
+          option-label="label"
+          option-value="value"
+      />
+    </div>
+
+    <!-- DataView -->
+    <DataView :value="documents" :loading="loading" :paginator="true" :rows="LIMIT">
+      <template #list="{ items }">
+        <div class="flex flex-col gap-2">
+          <div
+              v-for="doc in items"
+              :key="doc.id"
+              class="flex items-center justify-between px-3 py-3 rounded-lg border border-surface-border"
+          >
+            <!-- Icon + Name -->
+            <div class="flex items-center gap-3 min-w-0">
+              <i :class="getIcon(doc.type)" class="text-2xl shrink-0" />
+              <div class="flex flex-col min-w-0">
+                <span class="font-medium truncate">{{ doc.name }}</span>
+                <span class="text-sm text-surface-400">{{ doc.type }}</span>
+              </div>
+            </div>
+
+            <!-- Date + Actions -->
+            <div class="flex items-center gap-2 shrink-0">
+              <div class="hidden sm:flex flex-col items-end">
+                <span class="text-sm text-surface-400">{{ getDateLabel() }}</span>
+                <span class="text-sm">{{ getDate(doc) }}</span>
+              </div>
+              <Button
+                  v-if="activeFilter !== 'deleted'"
+                  icon="pi pi-ellipsis-v"
+                  text
+                  rounded
+              />
+              <Button
+                  v-else
+                  icon="pi pi-replay"
+                  text
+                  rounded
+                  v-tooltip="'Restore'"
+              />
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template #empty>
+        <div class="flex justify-center py-8 text-surface-400">
+          No documents found.
+        </div>
+      </template>
+    </DataView>
+
   </div>
 </template>

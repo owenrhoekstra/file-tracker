@@ -18,4 +18,5 @@ const { updateServiceWorker } = useRegisterSW({
 <template>
   <router-view />
   <Toast />
+  <ConfirmDialog />
 </template>

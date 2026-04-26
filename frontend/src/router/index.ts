@@ -7,16 +7,20 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/userAuthentication.vue')
     },
     {
-        path: '/print',
-        component: () => import('../views/labelPrint.vue')
-    },
-    {
         path: '/dashboard',
         component: () => import('../views/mainDashboard.vue')
     },
     {
         path: '/setup',
         component: () => import('../views/userSetup.vue')
+    },
+    {
+        path: '/new-record',
+        component: () => import('../views/addNewRecord.vue')
+    },
+    {
+        path: '/support',
+        component: () => import('../views/appSupport.vue')
     }
 ]
 
