@@ -6,22 +6,35 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      disable: true,
-      injectRegister: null,
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
         name: 'FileLogix',
         short_name: 'FileLogix',
         theme_color: '#000000',
         icons: [
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' }
+        ]
+      },
+      workbox: {
+        navigateFallback: null, // <-- THIS prevents HTML being blindly cached
+        runtimeCaching: [
           {
-            src: '/pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
+            urlPattern: ({ request }) => request.destination === 'document',
+            handler: 'NetworkFirst'
           },
           {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
+            urlPattern: ({ request }) =>
+                ['script', 'style', 'image'].includes(request.destination),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'assets',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 1 week
+              }
+            }
           }
         ]
       }

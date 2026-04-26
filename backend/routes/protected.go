@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"FileLogix/elevation"
 	"FileLogix/middleware"
 	"FileLogix/ocr"
 	"net/http"
@@ -15,9 +16,11 @@ func ProtectedRoutes() http.Handler {
 		}),
 	)
 
-	mux.Handle("/api/auth/elevate/verify",
+	mux.Handle("/ocr",
 		middleware.RequireRole("superuser", "manager", "user", "contributor")(
-			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { ocr.OcrEndpoint() }),
+			elevation.RequireActionElevation(
+				http.HandlerFunc(ocr.OcrEndpoint),
+			),
 		),
 	)
 

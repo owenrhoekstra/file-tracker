@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import Button from 'primevue/button'
-import { apiFetch } from '../services/logout/autoLogoutRedirect.ts'
+import { apiFetch } from '../services/fetch/statusCodeChecks.ts'
 import { requestElevation } from '../services/elevation/elevate.ts'
 import router from "../router/index.ts";
 
@@ -15,8 +16,6 @@ async function logout() {
   })
   await router.push('/?logout=true')
 }
-
-
 
 async function testActionElevation() {
   try {
@@ -33,61 +32,73 @@ async function testViewElevation() {
   console.log(ok ? 'View elevation granted!' : 'View elevation failed')
 }
 
+const ocrResult = ref<Record<string, unknown> | null>(null)
+const ocrError = ref<string | null>(null)
+
 async function ocrCall() {
-  // Create a hidden file input that opens the camera
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
-  input.capture = 'environment' // rear camera; use 'user' for front
+  input.capture = 'environment'
 
   input.onchange = async () => {
-    const file = input.files?.[0]
-    if (!file) return
+    try {
+      const file = input.files?.[0]
+      if (!file) return
 
-    // Decode the captured image
-    const bitmap = await createImageBitmap(file)
+      ocrResult.value = null
+      ocrError.value = null
 
-    // Re-encode to high-quality WebP via canvas
-    const canvas = document.createElement('canvas')
-    canvas.width = bitmap.width
-    canvas.height = bitmap.height
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(bitmap, 0, 0)
+      const bitmap = await createImageBitmap(file)
+      const canvas = document.createElement('canvas')
+      canvas.width = bitmap.width
+      canvas.height = bitmap.height
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(bitmap, 0, 0)
 
-    const blob = await new Promise<Blob>((resolve, reject) =>
-        canvas.toBlob(
-            b => b ? resolve(b) : reject(new Error('toBlob failed')),
-            'image/webp',
-            0.92 // quality 0–1
-        )
-    )
+      const blob = await new Promise<Blob>((resolve, reject) =>
+          canvas.toBlob(
+              b => b ? resolve(b) : reject(new Error('toBlob failed')),
+              'image/webp',
+              0.92
+          )
+      )
 
-    // Send to backend
-    const form = new FormData()
-    form.append('image', blob, 'capture.webp')
+      const form = new FormData()
+      form.append('image', blob, 'capture.webp')
 
-    await apiFetch('/api/protected/ocr', {
-      method: 'POST',
-      body: form,
-      // Do NOT set Content-Type — browser sets it with the boundary
-    })
+      const resp = await apiFetch('/api/protected/ocr', {
+        method: 'POST',
+        body: form,
+      })
+
+      if (!resp) return
+
+      if (!resp.ok) {
+        ocrError.value = `Error ${resp.status}: ${await resp.text()}`
+        return
+      }
+
+      ocrResult.value = await resp.json()
+    } catch (e) {
+      console.error('ocrCall error:', e)
+      ocrError.value = `Unexpected error: ${e}`
+    }
   }
-
   input.click()
 }
 </script>
 
 <template>
-<p>Auth comeplete, dashboard loaded</p>
+  <p>Auth complete, dashboard loaded</p>
   <div class="grid grid-cols-1 gap-4 max-w-sm w-full mx-auto px-4 py-3">
-  <Button label="Expired Test" @click=test() />
-  <Button label="Logout" @click=logout() />
-  <Button label="Test Action Elevation" @click="testActionElevation()" />
-  <Button label="Test View Elevation" @click="testViewElevation()" />
+    <Button label="Expired Test" @click="test()" />
+    <Button label="Logout" @click="logout()" />
+    <Button label="Test Action Elevation" @click="testActionElevation()" />
+    <Button label="Test View Elevation" @click="testViewElevation()" />
     <Button label="OCR Call" @click="ocrCall" />
+
+    <pre v-if="ocrError" style="color: red; white-space: pre-wrap;">{{ ocrError }}</pre>
+    <pre v-if="ocrResult" style="white-space: pre-wrap;">{{ JSON.stringify(ocrResult, null, 2) }}</pre>
   </div>
 </template>
-
-<style scoped>
-
-</style>

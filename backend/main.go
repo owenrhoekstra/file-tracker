@@ -9,6 +9,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+
+	"github.com/didip/tollbooth/v7"
 )
 
 func main() {
@@ -68,11 +70,28 @@ func main() {
 	mux.Handle("/api/auth/me",
 		middleware.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
 			userID := r.Context().Value(middleware.UserIDKey).([]byte)
+
+			var metadataComplete bool
+			var email string
+			err := database.DB.QueryRow(`
+            SELECT metadata_complete, email FROM users WHERE id = $1
+        `, userID).Scan(&metadataComplete, &email)
+			if err != nil {
+				http.Error(w, "failed to load user", http.StatusInternalServerError)
+				return
+			}
+
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"userId": hex.EncodeToString(userID),
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"userId":           hex.EncodeToString(userID),
+				"metadataComplete": metadataComplete,
+				"email":            email,
 			})
 		}),
+	)
+
+	mux.Handle("/api/user/",
+		http.StripPrefix("/api/user", routes.UserRoutes()),
 	)
 
 	// 🔒 ELEVATION ROUTES

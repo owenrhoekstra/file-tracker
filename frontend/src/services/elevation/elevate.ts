@@ -1,5 +1,6 @@
 import { base64ToUint8Array, uint8ArrayToBase64url } from '../userAuthentication/utilFunctions.ts'
-import { apiFetch } from '../logout/autoLogoutRedirect.ts'
+import { apiFetch } from '../fetch/statusCodeChecks.ts'
+import { baseFetch } from '../fetch/baseFetch.ts'
 
 type ElevationType = 'action' | 'view'
 
@@ -22,15 +23,23 @@ type ElevationChallengeResponse = {
 }
 
 export async function requestElevation(type: ElevationType): Promise<boolean> {
+    console.log('requestElevation called with type:', type)
+
     // Step 1: Get challenge
-    const challengeRes = await apiFetch('/api/auth/elevate/challenge', {
+    const challengeRes = await baseFetch('/api/auth/elevate/challenge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type }),
     })
+
+    console.log('challenge response status:', challengeRes?.status)
     if (!challengeRes?.ok) return false
 
-    const { options }: ElevationChallengeResponse = await challengeRes.json()
+    // ✅ READ BODY ONCE
+    const data: ElevationChallengeResponse = await challengeRes.json()
+    console.log('challenge data:', data)
+
+    const { options } = data
 
     // Step 2: Sign with passkey
     const challengeBytes = base64ToUint8Array(options.publicKey.challenge)
@@ -80,5 +89,5 @@ export async function requestElevation(type: ElevationType): Promise<boolean> {
         }),
     })
 
-    return verifyRes?.ok ?? false
+    return verifyRes?.ok === true
 }

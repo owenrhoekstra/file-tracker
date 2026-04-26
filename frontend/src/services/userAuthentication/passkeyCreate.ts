@@ -1,5 +1,5 @@
 import { base64ToUint8Array, uint8ArrayToBase64url } from './utilFunctions'
-import { apiFetch } from '../logout/autoLogoutRedirect.ts'
+import { apiFetch } from '../fetch/statusCodeChecks.ts'
 import router from "../../router/index.ts"
 
 type PublicKeyCredentialCreationOptionsJSON = {

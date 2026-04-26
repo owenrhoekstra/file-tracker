@@ -19,6 +19,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - PYTHON_OCR_URL=http://ocr:8081/ocr
     volumes:
       - /var/run/postgresql:/var/run/postgresql
     depends_on:
@@ -56,6 +57,9 @@ services:
 
   ocr:
     build: ./ocr
+    ports:
+      - "127.0.0.1:8081:8081"
+    restart: unless-stopped
 
 volumes:
   vue_dist:

@@ -12,9 +12,8 @@ func RequireActionElevation(next http.HandlerFunc) http.HandlerFunc {
 
 		_, ok := GetElevation(token, ActionElevation)
 		if !ok {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Require-Elevation", "action")
 			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(`{"require_elevation":"action"}`))
 			return
 		}
 
@@ -29,9 +28,8 @@ func RequireViewElevation(next http.HandlerFunc) http.HandlerFunc {
 
 		_, ok := GetElevation(token, ViewElevation)
 		if !ok {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Require-Elevation", "view")
 			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(`{"require_elevation":"view"}`))
 			return
 		}
 
